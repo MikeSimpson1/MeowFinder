@@ -13,3 +13,4 @@ HOW TO USE:
 5. Open CMD, navigate to folder with MeowFinder.py
 6. Run command: MeowFinder.py
 
+My initial use was to make this to find new kitten postings in my area, hence the name MeowFinder, but can be used with any Kijiji page.
