@@ -1,44 +1,59 @@
-from selenium import webdriver
+import requests
 from playsound import playsound
-import time
+from bs4 import BeautifulSoup
+import time as Time
+#Mike Simpson 2021
+#TODO: Add keyword notifications
 
-kijijiPage = "https://www.kijiji.ca/b-cats-kittens/ontario/c125l9004"
-delayBetweenChecks = 600 #in seconds (default 600 = 10 minutes)
-alertSound = 'meow.mp3' #must be name of audio file within the folder (default meow.mp3)
-loops = 20 #how many loops of the program
 
-for x in range(loops): #how many checks
-	options = webdriver.ChromeOptions()
-	options.add_experimental_option("excludeSwitches", ["enable-logging"])
-	driver = webdriver.Chrome(options = options)
-	driver.get(kijijiPage)
+def getUserInput(text, defaultVal):
+    print(text)
+    userInput = input()
+    if userInput == '':
+        userInput = defaultVal
+    return userInput
 
-	www = driver.find_elements_by_xpath("//a[@class='title ']")
+def getPosts(URL):
+    page = requests.get(URL)
+    soup = BeautifulSoup(page.content, "html.parser")
+    results = soup.find("main")
+    post_elements = results.find_all("div", class_="title")
+    posts = []
+    for p in post_elements:
+        posts.append(str(p.text.encode("utf-8").strip())[2:len(p.text)-1])
+    return posts
 
-	#read from previous-post file
-	f = open('posts.txt', 'r')
-	list_of_posts = f.readlines()
-	f.close()
+def getSavedPosts():
+    f = open('posts.txt', 'r')
+    list_of_posts = f.readlines()
+    f.close()
+    for i in range(0, len(list_of_posts)):
+    	list_of_posts[i] = list_of_posts[i].strip('\n')
+    return list_of_posts
 
-	#remove \n from strings (was used for better .txt writing)
-	for i in range(0, len(list_of_posts)):
-		list_of_posts[i] = list_of_posts[i].strip('\n')
+def comparePosts(grabbedPosts, savedPosts, alertSound):
+    for post in grabbedPosts:
+        if post not in savedPosts:
+            print(post)
+            playsound(alertSound)
 
-	for i in range(0,len(list_of_posts)):
-		www[i] = str(www[i].get_attribute('text').strip().encode("utf-8")).strip('\'')[2:] #get rid of white space and unicode characters
-		www[i] = str(www[i].encode("utf-8")) #must fix these 2 lines later
+def savePosts(posts):
+    f = open('posts.txt','w')
+    for post in posts:
+    	f.write(post)
+    	f.write('\n')
+    f.close()
 
-		if (www[i] not in list_of_posts):
-			print(www[i][2:len(www[i])-1])
-			playsound(alertSound) #new post notification!
-
-	#write new list to file
-	f = open('posts.txt','w')
-	for i in range(0,10):
-		f.write(www[i])
-		f.write('\n')
-	f.close()
-
-	driver.delete_all_cookies()
-	driver.quit()
-	time.sleep(delayBetweenChecks) #delay in seconds between each check
+def main():
+    URL = getUserInput("enter a URL (DEFAULT: kijiji.ca): ", "https://kijiji.ca")
+    time = int(getUserInput("how often in seconds (DEFAULT: 600): ", 600))
+    loops = int(getUserInput("how many loops (DEFAULT: 20): ", 20))
+    alertSound = getUserInput("enter name of alert sound file (DEFAULT: notification.mp3): ", "notification.mp3")
+    for x in range(loops):
+        print("Loop " + str(x+1) + " of " + str(loops) + ". Started at: " + Time.strftime("%I:%M:%S %p",Time.localtime()))
+        savedPosts = getSavedPosts()
+        listOfPosts = getPosts(URL)
+        comparePosts(listOfPosts, savedPosts, alertSound)
+        savePosts(listOfPosts)
+        Time.sleep(time)
+main()
